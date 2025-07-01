@@ -62,21 +62,25 @@ def normalize_text(text):
     for word in words:
         lower = word.lower()
 
-        # Skip exclusions like "univision"
         if lower in latin_exclusions:
             normalized_words.append(word)
         else:
-            # Detect numeric repetition like "bn2" → "baina baina"
+            # Handle numeric repeat like "bn2" → "baina baina"
             if lower.endswith("2"):
                 base = lower[:-1]
                 if base in normalization_dict:
                     norm = normalization_dict[base]
-                    normalized_words.append(norm)
-                    normalized_words.append(norm)
+                    for w in norm.split():
+                        normalized_words.append(normalization_dict.get(w, w))
+                    for w in norm.split():
+                        normalized_words.append(normalization_dict.get(w, w))
                 else:
                     normalized_words.append(word)
             else:
-                normalized_words.append(normalization_dict.get(lower, word))
+                norm = normalization_dict.get(lower, word)
+                # ✅ normalize result if it's a phrase (e.g. "baidag yum")
+                for w in norm.split():
+                    normalized_words.append(normalization_dict.get(w, w))
 
     return " ".join(normalized_words)
 
