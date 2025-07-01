@@ -7,15 +7,15 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 # Words to skip transliteration (e.g. brands, apps, platforms)
 latin_exclusions = {
-    "univision", "unuvision", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp"
+    "univision", "unuvision", "univishion", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp", "uni"     
 }
 
 # Normalization dictionary: informal or fixed forms
 normalization_dict = {
-    "bn": "baina",
-    "bna": "baina",
+    "bn": "baina","bna": "baina",
     "bga": "baigaa",
-    "bdin": "baidag ym",
+    "bdin": "baidag yam",
+    "bdg": "baidag", "bdag": "baidag",
     "bnu": "baina uu",
     "zugeer": "zugeer",
     "zgr": "zugeer",
@@ -35,9 +35,13 @@ normalization_dict = {
     "zuv": "zöv",               # зөв
     "hereg": "khereg",          # хэрэг
     "deer": "deer",             # дээр
-    "mungu": "möngö",           # мөнгө
-    "shuu": "shüü", 
-    "shvv": "shüü"
+    "mungu": "möngö", "mongo": "möngö",         # мөнгө
+    "shuu": "shüü", "shvv": "shüü",
+    "hymd": "hyamd",
+    "hynalt": "hyanalt",
+    "yu": "yuu", "yuu": "yuu",
+    "ym": "yum", "yum": "yum"
+    
 }
 
 # Latin to Cyrillic mapping (includes ö, ü, ui/vi/üi)
@@ -78,7 +82,7 @@ def normalize_text(text):
                     normalized_words.append(word)
             else:
                 norm = normalization_dict.get(lower, word)
-                # ✅ normalize result if it's a phrase (e.g. "baidag yum")
+                #  normalize result if it's a phrase (e.g. "baidag yum")
                 for w in norm.split():
                     normalized_words.append(normalization_dict.get(w, w))
 
@@ -96,7 +100,7 @@ def transliterate_latin_to_cyrillic(text):
         lower = word.lower()
 
         if lower in latin_exclusions:
-            result.append(word)  # ✅ skip transliteration
+            result.append(word)  # skip transliteration
             continue
 
         # Step 1: Apply digraphs to the word
