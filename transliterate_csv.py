@@ -5,7 +5,7 @@ import sys
 # Fix Windows terminal encoding
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Words to skip transliteration (e.g. brands)
+# Words to skip transliteration (e.g. brands, apps, platforms)
 latin_exclusions = {
     "univision", "unuvision", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp"
 }
@@ -30,12 +30,12 @@ normalization_dict = {
     "hureerei": "xureerei",
     "hicheel": "xicheel",
     "xun": "xun",
-    "tuhuurumj": "tökhöörömj",   # төхөөрөмж
+    "tuhuurumj": "töhöörömj",   # төхөөрөмж
     "buren": "büren",           # бүрэн
     "zuv": "zöv",               # зөв
     "hereg": "khereg",          # хэрэг
     "deer": "deer",             # дээр
-    "mungu": "möngö",
+    "mungu": "möngö",           # мөнгө
     "shuu": "shüü", 
     "shvv": "shüü"
 }
@@ -54,39 +54,39 @@ latin_to_cyrillic = {
 # Digraphs ordered by priority (longest first)
 digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
 
-# Normalize slang and fixed words
-def transliterate_latin_to_cyrillic(text):
-    # Step 1: Replace digraphs (longest first)
-    for digraph in digraphs:
-        if digraph in latin_to_cyrillic:
-            text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
+# Step 1: Normalize slang, abbreviations, and duplication like "bn2" → "baina baina"
+def normalize_text(text):
+    words = text.split()
+    normalized_words = []
 
-    # Step 2: Replace word-initial "e" with "е"
-    text = re.sub(r'\b[eE]', 'е', text)
+    for word in words:
+        lower = word.lower()
 
-    # Step 3: Transliterate word-by-word, skipping exclusions
-    result = []
-    for word in text.split():
-        if word.lower() in latin_exclusions:
-            result.append(word)  # Leave brand name untouched
+        # Skip exclusions like "univision"
+        if lower in latin_exclusions:
+            normalized_words.append(word)
         else:
-            converted = ''
-            for char in word:
-                if char.lower() == 'e':
-                    converted += 'э'
+            # Detect numeric repetition like "bn2" → "baina baina"
+            if lower.endswith("2"):
+                base = lower[:-1]
+                if base in normalization_dict:
+                    norm = normalization_dict[base]
+                    normalized_words.append(norm)
+                    normalized_words.append(norm)
                 else:
-                    converted += latin_to_cyrillic.get(char.lower(), char)
-            result.append(converted)
+                    normalized_words.append(word)
+            else:
+                normalized_words.append(normalization_dict.get(lower, word))
 
-    return ' '.join(result)
+    return " ".join(normalized_words)
 
-# Fix h used instead of kh
+# Step 2: Fix "h" used instead of "kh"
 def fix_h_pronunciations(text):
     return re.sub(r'\bh([aeiouöü])', r'kh\1', text)
 
-# Transliterate Latin to Cyrillic
+# Step 3: Transliterate normalized Latin text to Cyrillic
 def transliterate_latin_to_cyrillic(text):
-    # Step 1: Replace digraphs (longest first)
+    # Step 1: Replace digraphs like "ai", "sh", "kh"
     for digraph in digraphs:
         if digraph in latin_to_cyrillic:
             text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
@@ -94,11 +94,11 @@ def transliterate_latin_to_cyrillic(text):
     # Step 2: Replace word-initial "e" with "е"
     text = re.sub(r'\b[eE]', 'е', text)
 
-    # Step 3: Transliterate word-by-word, skipping exclusions
+    # Step 3: Process word by word
     result = []
     for word in text.split():
         if word.lower() in latin_exclusions:
-            result.append(word)  # Leave brand name untouched
+            result.append(word)
         else:
             converted = ''
             for char in word:
@@ -110,16 +110,16 @@ def transliterate_latin_to_cyrillic(text):
 
     return ' '.join(result)
 
-# Full pipeline: normalize → fix h → transliterate
+# Step 4: Full pipeline
 def latin_to_cyrillic_pipeline(text):
-    if pd.isna(text):
+    if pd.isna(text) or str(text).strip() == "":
         return ""
     text = str(text)
     text = fix_h_pronunciations(text)
     text = normalize_text(text)
     return transliterate_latin_to_cyrillic(text)
 
-# Main processing function
+# Step 5: Apply pipeline to Excel input
 def process_excel_to_csv(input_excel, output_csv, latin_column):
     df = pd.read_excel(input_excel)
 
@@ -134,10 +134,10 @@ def process_excel_to_csv(input_excel, output_csv, latin_column):
     df.to_csv(output_csv, index=False, encoding='utf-8-sig')
     print("Saved to:", output_csv)
 
-# Run script
+# Step 6: Run
 if __name__ == "__main__":
     input_excel = "D:/sentiment/Facebook Comments 1.xlsx"
     output_csv = "D:/sentiment/output_cyrillic.csv"
-    latin_column = "text"  # your column name
+    latin_column = "text"  # make sure this matches your actual column
 
     process_excel_to_csv(input_excel, output_csv, latin_column)
