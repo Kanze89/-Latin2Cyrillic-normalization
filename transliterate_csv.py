@@ -86,27 +86,32 @@ def fix_h_pronunciations(text):
 
 # Step 3: Transliterate normalized Latin text to Cyrillic
 def transliterate_latin_to_cyrillic(text):
-    # Step 1: Replace digraphs like "ai", "sh", "kh"
-    for digraph in digraphs:
-        if digraph in latin_to_cyrillic:
-            text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
-
-    # Step 2: Replace word-initial "e" with "е"
-    text = re.sub(r'\b[eE]', 'е', text)
-
-    # Step 3: Process word by word
     result = []
+
     for word in text.split():
-        if word.lower() in latin_exclusions:
-            result.append(word)
-        else:
-            converted = ''
-            for char in word:
-                if char.lower() == 'e':
-                    converted += 'э'
-                else:
-                    converted += latin_to_cyrillic.get(char.lower(), char)
-            result.append(converted)
+        lower = word.lower()
+
+        if lower in latin_exclusions:
+            result.append(word)  # ✅ skip transliteration
+            continue
+
+        # Step 1: Apply digraphs to the word
+        for digraph in digraphs:
+            if digraph in latin_to_cyrillic:
+                word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
+
+        # Step 2: Word-initial "e" → "е"
+        word = re.sub(r'^[eE]', 'е', word)
+
+        # Step 3: Remaining char-by-char conversion
+        converted = ''
+        for char in word:
+            if char.lower() == 'e':
+                converted += 'э'
+            else:
+                converted += latin_to_cyrillic.get(char.lower(), char)
+
+        result.append(converted)
 
     return ' '.join(result)
 
