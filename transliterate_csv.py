@@ -6,11 +6,14 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Words to skip transliteration (e.g. brands)
-latin_exclusions = {"univision"}
+latin_exclusions = {"univision"}, {"Unuvision"}, {"voo"}, {"skymedia"}, {"mobinet"}, {"unitel"}, {""}
 
 # Normalization dictionary: informal or fixed forms
 normalization_dict = {
     "bn": "baina",
+    "bna": "baina",
+    "bga": "baigaa",
+    "bdin": "baidag ym",
     "bnu": "baina uu",
     "zugeer": "zugeer",
     "zgr": "zugeer",
@@ -30,12 +33,14 @@ normalization_dict = {
     "zuv": "zöv",               # зөв
     "hereg": "khereg",          # хэрэг
     "deer": "deer",             # дээр
-    "mungu": "möngö"
+    "mungu": "möngö",
+    "shuu": "shüü", 
+    "shvv": "shüü"
 }
 
 # Latin to Cyrillic mapping (includes ö, ü, ui/vi/üi)
 latin_to_cyrillic = {
-    "ui": "уй", "vi": "үй", "üi": "үй",
+    "ui": "уй", "vi": "үй", "üi": "үй", "ai": "ай", "ii": "ий", "kh": "х",
     "ch": "ч", "sh": "ш", "ts": "ц", "ya": "я", "yo": "ё", "yu": "ю", "ee": "э",
     "ö": "ө", "ü": "ү",
     "a": "а", "b": "б", "c": "ц", "d": "д", "e": "е", "f": "ф", "g": "г",
@@ -45,7 +50,7 @@ latin_to_cyrillic = {
 }
 
 # Digraphs ordered by priority (longest first)
-digraphs = ["üi", "vi", "ui", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
+digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
 
 # Normalize slang and fixed words
 def normalize_text(text):
