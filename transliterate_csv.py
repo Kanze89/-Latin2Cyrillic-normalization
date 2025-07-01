@@ -62,21 +62,26 @@ def latin_to_cyrillic_pipeline(text):
     text = normalize_text(text)
     return transliterate_latin_to_cyrillic(text)
 
-# Step 7: Process Excel file
-def process_excel(input_file, output_file, latin_column):
-    df = pd.read_excel(input_file)
+# Step 7: Process Excel file and output CSV
+def process_excel_to_csv(input_excel, output_csv, latin_column):
+    df = pd.read_excel(input_excel)
+
+    # Show available column names for debugging
+    print("📋 Column names in Excel:")
+    print(df.columns)
 
     # Apply the transliteration pipeline
     df['cyrillic'] = df[latin_column].apply(latin_to_cyrillic_pipeline)
 
-    # Save result to new Excel file
-    df.to_excel(output_file, index=False)
-    print(f"Saved: {output_file}")
+    # Save result to CSV
+    df.to_csv(output_csv, index=False, encoding='utf-8-sig')
+    print(f"✅ Saved CSV: {output_csv}")
 
-# Step 8: Main
+# Step 8: Main block
 if __name__ == "__main__":
-    input_excel = "D:/sentiment/Facebook Comments 1.xlsx"    # ⬅ Change to your file name
-    output_excel = "D:/sentiment/output_cyrillic.xlsx"
-    latin_column = "text_latin"  # ⬅ Change to your column name in the Excel file
+    # Replace these with your actual paths and column name
+    input_excel = "D:/sentiment/Facebook Comments 1.xlsx"   # your Excel file
+    output_csv = "D:/sentiment/output_cyrillic.csv"         # output CSV file
+    latin_column = "Comment"                                # column name with Latin text (check exact name!)
 
-    process_excel(input_excel, output_excel, latin_column)
+    process_excel_to_csv(input_excel, output_csv, latin_column)
