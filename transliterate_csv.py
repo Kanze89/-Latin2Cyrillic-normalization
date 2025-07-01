@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 # Words to skip transliteration (e.g. brands)
 latin_exclusions = {
-    "univision", "unuvision", "voo", "skymedia", "mobinet", "unitel"
+    "univision", "unuvision", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp"
 }
 
 # Normalization dictionary: informal or fixed forms
@@ -55,31 +55,30 @@ latin_to_cyrillic = {
 digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
 
 # Normalize slang and fixed words
-def normalize_text(text):
-    words = text.split()
-    normalized_words = []
+def transliterate_latin_to_cyrillic(text):
+    # Step 1: Replace digraphs (longest first)
+    for digraph in digraphs:
+        if digraph in latin_to_cyrillic:
+            text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
 
-    for word in words:
-        lower = word.lower()
+    # Step 2: Replace word-initial "e" with "е"
+    text = re.sub(r'\b[eE]', 'е', text)
 
-        # 1. Skip excluded words
-        if lower in latin_exclusions:
-            normalized_words.append(word)
+    # Step 3: Transliterate word-by-word, skipping exclusions
+    result = []
+    for word in text.split():
+        if word.lower() in latin_exclusions:
+            result.append(word)  # Leave brand name untouched
         else:
-            # 2. If word ends in "2", duplicate its normalized base
-            if lower.endswith("2"):
-                base = lower[:-1]
-                if base in normalization_dict:
-                    norm = normalization_dict[base]
-                    normalized_words.append(norm)
-                    normalized_words.append(norm)
+            converted = ''
+            for char in word:
+                if char.lower() == 'e':
+                    converted += 'э'
                 else:
-                    normalized_words.append(word)
-            else:
-                # 3. Regular normalization
-                normalized_words.append(normalization_dict.get(lower, word))
+                    converted += latin_to_cyrillic.get(char.lower(), char)
+            result.append(converted)
 
-    return " ".join(normalized_words)
+    return ' '.join(result)
 
 # Fix h used instead of kh
 def fix_h_pronunciations(text):
