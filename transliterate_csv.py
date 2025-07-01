@@ -39,7 +39,8 @@ normalization_dict = {
     "shuu": "shüü", "shvv": "shüü",
     "hymd": "hyamd",
     "hynalt": "hyanalt",
-    "ym": "yum", "yum": "юм"  # ✅ final Cyrillic form
+    "ym": "yum", "yum": "юм",  # ✅ final Cyrillic form
+    "tuv": "töv", "tuw": "töv"
 }
 
 # Latin to Cyrillic mapping
@@ -107,7 +108,8 @@ def transliterate_latin_to_cyrillic(text):
             if digraph in latin_to_cyrillic:
                 word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
 
-        word = re.sub(r'^[eE]', 'е', word)
+        if re.match(r'^(er|ev|ey), word.lower'()):
+            word = re.sub(r'^[eE]', 'e', word)
 
         converted = ''
         for char in word:
