@@ -5,7 +5,7 @@ import re
 normalization_dict = {
     "bn": "baina",
     "bnu": "baina uu",
-    "zgr": "zugaar",
+    "zgr": "zugeer",
     "mngl": "mongol",
     "ymr": "yamar",
     "ymar": "yamar",
