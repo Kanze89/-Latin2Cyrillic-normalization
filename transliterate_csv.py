@@ -58,12 +58,27 @@ digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "
 def normalize_text(text):
     words = text.split()
     normalized_words = []
+
     for word in words:
         lower = word.lower()
+
+        # 1. Skip excluded words
         if lower in latin_exclusions:
             normalized_words.append(word)
         else:
-            normalized_words.append(normalization_dict.get(lower, word))
+            # 2. If word ends in "2", duplicate its normalized base
+            if lower.endswith("2"):
+                base = lower[:-1]
+                if base in normalization_dict:
+                    norm = normalization_dict[base]
+                    normalized_words.append(norm)
+                    normalized_words.append(norm)
+                else:
+                    normalized_words.append(word)
+            else:
+                # 3. Regular normalization
+                normalized_words.append(normalization_dict.get(lower, word))
+
     return " ".join(normalized_words)
 
 # Fix h used instead of kh
