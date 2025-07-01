@@ -7,14 +7,14 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 # Words to skip transliteration (e.g. brands, apps, platforms)
 latin_exclusions = {
-    "univision", "unuvision", "univishion", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp", "uni"     
+    "univision", "unuvision", "univishion", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp", "uni"
 }
 
 # Normalization dictionary: informal or fixed forms
 normalization_dict = {
-    "bn": "baina","bna": "baina",
+    "bn": "baina", "bna": "baina",
     "bga": "baigaa",
-    "bdin": "baidag yam",
+    "bdin": "baidag yum",
     "bdg": "baidag", "bdag": "baidag",
     "bnu": "baina uu",
     "zugeer": "zugeer",
@@ -22,29 +22,27 @@ normalization_dict = {
     "mngl": "mongol",
     "ymr": "yamar",
     "ymar": "yamar",
-    "yu": "yuu",
+    "yu": "yuu", "yuu": "yuu",
     "xar": "khar", "xap": "khar", "har": "khar",
     "hun": "xun",
     "huts": "xuts",
     "hotiin": "xotiin",
-    "hureerei": "xureerei",
-    "hicheel": "xicheel",
+    "hureerei": "hureerei",
+    "hicheel": "hicheel",
     "xun": "xun",
-    "tuhuurumj": "töhöörömj",   # төхөөрөмж
-    "buren": "büren",           # бүрэн
-    "zuv": "zöv",               # зөв
-    "hereg": "khereg",          # хэрэг
-    "deer": "deer",             # дээр
-    "mungu": "möngö", "mongo": "möngö",         # мөнгө
+    "tuhuurumj": "töhöörömj",
+    "buren": "büren",
+    "zuv": "zöv",
+    "hereg": "khereg",
+    "deer": "deer",
+    "mungu": "möngö", "mongo": "möngö",
     "shuu": "shüü", "shvv": "shüü",
     "hymd": "hyamd",
     "hynalt": "hyanalt",
-    "yu": "yuu", "yuu": "yuu",
-    "ym": "yum", "yum": "yum"
-    
+    "ym": "yum", "yum": "юм"  # ✅ final Cyrillic form
 }
 
-# Latin to Cyrillic mapping (includes ö, ü, ui/vi/üi)
+# Latin to Cyrillic mapping
 latin_to_cyrillic = {
     "ui": "уй", "vi": "үй", "üi": "үй", "ai": "ай", "ii": "ий", "kh": "х",
     "ch": "ч", "sh": "ш", "ts": "ц", "ya": "я", "yo": "ё", "yu": "ю", "ee": "э",
@@ -58,7 +56,11 @@ latin_to_cyrillic = {
 # Digraphs ordered by priority (longest first)
 digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
 
-# Step 1: Normalize slang, abbreviations, and duplication like "bn2" → "baina baina"
+# ✅ Detect if word is already in Cyrillic
+def is_cyrillic(text):
+    return all('а' <= char <= 'я' or char == 'ё' for char in text.lower())
+
+# Step 1: Normalize informal patterns
 def normalize_text(text):
     words = text.split()
     normalized_words = []
@@ -69,7 +71,6 @@ def normalize_text(text):
         if lower in latin_exclusions:
             normalized_words.append(word)
         else:
-            # Handle numeric repeat like "bn2" → "baina baina"
             if lower.endswith("2"):
                 base = lower[:-1]
                 if base in normalization_dict:
@@ -82,7 +83,6 @@ def normalize_text(text):
                     normalized_words.append(word)
             else:
                 norm = normalization_dict.get(lower, word)
-                #  normalize result if it's a phrase (e.g. "baidag yum")
                 for w in norm.split():
                     normalized_words.append(normalization_dict.get(w, w))
 
@@ -92,26 +92,23 @@ def normalize_text(text):
 def fix_h_pronunciations(text):
     return re.sub(r'\bh([aeiouöü])', r'kh\1', text)
 
-# Step 3: Transliterate normalized Latin text to Cyrillic
+# Step 3: Transliterate Latin to Cyrillic
 def transliterate_latin_to_cyrillic(text):
     result = []
 
     for word in text.split():
         lower = word.lower()
 
-        if lower in latin_exclusions:
-            result.append(word)  # skip transliteration
+        if lower in latin_exclusions or is_cyrillic(lower):
+            result.append(word)
             continue
 
-        # Step 1: Apply digraphs to the word
         for digraph in digraphs:
             if digraph in latin_to_cyrillic:
                 word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
 
-        # Step 2: Word-initial "e" → "е"
         word = re.sub(r'^[eE]', 'е', word)
 
-        # Step 3: Remaining char-by-char conversion
         converted = ''
         for char in word:
             if char.lower() == 'e':
@@ -132,7 +129,7 @@ def latin_to_cyrillic_pipeline(text):
     text = normalize_text(text)
     return transliterate_latin_to_cyrillic(text)
 
-# Step 5: Apply pipeline to Excel input
+# Step 5: Apply to Excel
 def process_excel_to_csv(input_excel, output_csv, latin_column):
     df = pd.read_excel(input_excel)
 
@@ -151,6 +148,6 @@ def process_excel_to_csv(input_excel, output_csv, latin_column):
 if __name__ == "__main__":
     input_excel = "D:/sentiment/Facebook Comments 1.xlsx"
     output_csv = "D:/sentiment/output_cyrillic.csv"
-    latin_column = "text"  # make sure this matches your actual column
+    latin_column = "text"  # Your actual column name
 
     process_excel_to_csv(input_excel, output_csv, latin_column)
