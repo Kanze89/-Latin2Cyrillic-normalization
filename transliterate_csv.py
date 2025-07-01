@@ -6,7 +6,9 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Words to skip transliteration (e.g. brands)
-latin_exclusions = {"univision"}, {"Unuvision"}, {"voo"}, {"skymedia"}, {"mobinet"}, {"unitel"}, {""}
+latin_exclusions = {
+    "univision", "unuvision", "voo", "skymedia", "mobinet", "unitel"
+}
 
 # Normalization dictionary: informal or fixed forms
 normalization_dict = {
