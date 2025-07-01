@@ -30,6 +30,7 @@ normalization_dict = {
     "zuv": "zöv",               # зөв
     "hereg": "khereg",          # хэрэг
     "deer": "deer",             # дээр
+    "mungu": "möngö"
 }
 
 # Latin to Cyrillic mapping (includes ö, ü, ui/vi/üi)
@@ -64,13 +65,22 @@ def fix_h_pronunciations(text):
 
 # Transliterate Latin to Cyrillic
 def transliterate_latin_to_cyrillic(text):
+    # Apply digraphs first (like ye, ui, etc.)
     for digraph in digraphs:
         if digraph in latin_to_cyrillic:
             text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
 
+    # Replace word-initial "e" with "е"
+    text = re.sub(r'\b[eE]', 'е', text)
+
     result = ''
     for char in text:
-        result += latin_to_cyrillic.get(char.lower(), char)
+        lower_char = char.lower()
+        # All other e → э
+        if lower_char == 'e':
+            result += 'э'
+        else:
+            result += latin_to_cyrillic.get(lower_char, char)
     return result
 
 # Full pipeline: normalize → fix h → transliterate
