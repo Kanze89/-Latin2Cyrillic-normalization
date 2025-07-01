@@ -65,23 +65,29 @@ def fix_h_pronunciations(text):
 
 # Transliterate Latin to Cyrillic
 def transliterate_latin_to_cyrillic(text):
-    # Apply digraphs first (like ye, ui, etc.)
+    # Step 1: Replace digraphs (longest first)
     for digraph in digraphs:
         if digraph in latin_to_cyrillic:
             text = re.sub(digraph, latin_to_cyrillic[digraph], text, flags=re.IGNORECASE)
 
-    # Replace word-initial "e" with "е"
+    # Step 2: Replace word-initial "e" with "е"
     text = re.sub(r'\b[eE]', 'е', text)
 
-    result = ''
-    for char in text:
-        lower_char = char.lower()
-        # All other e → э
-        if lower_char == 'e':
-            result += 'э'
+    # Step 3: Transliterate word-by-word, skipping exclusions
+    result = []
+    for word in text.split():
+        if word.lower() in latin_exclusions:
+            result.append(word)  # Leave brand name untouched
         else:
-            result += latin_to_cyrillic.get(lower_char, char)
-    return result
+            converted = ''
+            for char in word:
+                if char.lower() == 'e':
+                    converted += 'э'
+                else:
+                    converted += latin_to_cyrillic.get(char.lower(), char)
+            result.append(converted)
+
+    return ' '.join(result)
 
 # Full pipeline: normalize → fix h → transliterate
 def latin_to_cyrillic_pipeline(text):
