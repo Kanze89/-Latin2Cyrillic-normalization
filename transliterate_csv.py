@@ -6,58 +6,6 @@ import sys
 # Fix Windows terminal encoding
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Words to skip transliteration (e.g. brands, apps, platforms)
-latin_exclusions = {
-    "univision", "unuvision", "univishion", "voo", "skymedia", "mobinet", "unitel", "computer", "windows xp", "uni"
-}
-
-# Normalization dictionary: informal or fixed forms
-normalization_dict = {
-    "bn": "baina", "bna": "baina",
-    "bga": "baigaa",
-    "bdin": "baidag yum",
-    "bdg": "baidag", "bdag": "baidag",
-    "bnu": "baina uu",
-    "zugeer": "zugeer",
-    "zgr": "zugeer",
-    "mngl": "mongol",
-    "ymr": "yamar",
-    "ymar": "yamar",
-    "yu": "yuu", "yuu": "yuu",
-    "xar": "khar", "xap": "khar", "har": "khar",
-    "hun": "xun",
-    "huts": "xuts",
-    "hotiin": "xotiin",
-    "hureerei": "hureerei",
-    "hicheel": "hicheel",
-    "xun": "xun",
-    "tuhuurumj": "töhöörömj",
-    "buren": "büren",
-    "zuv": "zöv",
-    "hereg": "khereg",
-    "deer": "deer",
-    "mungu": "möngö", "mongo": "möngö",
-    "shuu": "shüü", "shvv": "shüü",
-    "hymd": "hyamd",
-    "hynalt": "hyanalt",
-    "ym": "yum", "yum": "юм",  # ✅ final Cyrillic form
-    "tuv": "töv", "tuw": "töv"
-}
-
-# Latin to Cyrillic mapping
-latin_to_cyrillic = {
-    "ui": "уй", "vi": "үй", "üi": "үй", "ai": "ай", "ii": "ий", "kh": "х",
-    "ch": "ч", "sh": "ш", "ts": "ц", "ya": "я", "yo": "ё", "yu": "ю", "ee": "э",
-    "ö": "ө", "ü": "ү",
-    "a": "а", "b": "б", "c": "ц", "d": "д", "e": "е", "f": "ф", "g": "г",
-    "h": "х", "i": "и", "j": "ж", "k": "к", "l": "л", "m": "м", "n": "н",
-    "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т", "u": "у",
-    "v": "в", "w": "в", "x": "х", "y": "й", "z": "з"
-}
-
-# Digraphs ordered by priority (longest first)
-digraphs = ["kh", "üi", "vi", "ui", "ai", "ii", "ch", "sh", "ts", "ya", "yo", "yu", "ee"]
-
 # ✅ Detect if word is already in Cyrillic
 def is_cyrillic(text):
     return all('а' <= char <= 'я' or char == 'ё' for char in text.lower())
@@ -109,7 +57,7 @@ def transliterate_latin_to_cyrillic(text):
             if digraph in latin_to_cyrillic:
                 word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
 
-        if re.match(r'^(er|ev|ey), word.lower'()):
+        if re.match(r'^(er|ev|ey)', word.lower()):
             word = re.sub(r'^[eE]', 'e', word)
 
         converted = ''
