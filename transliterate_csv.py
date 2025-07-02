@@ -112,9 +112,9 @@ def process_and_analyze(input_excel, output_csv, latin_column):
     # Word frequency
     word_counter = Counter()
     for row in df[latin_column].dropna():
-    if isinstance(row, str):
-        words = row.lower().split()
-        word_counter.update(words)
+        if isinstance(row, str):  # ✅ Fixed indentation
+            words = row.lower().split()
+            word_counter.update(words)
     pd.DataFrame(word_counter.items(), columns=['word', 'count']).sort_values(by="count", ascending=False)\
         .to_csv(f"{output_folder}/top_words.csv", index=False, encoding='utf-8-sig')
     plot_bar(word_counter, "Top Words", f"{output_folder}/top_words_chart.png")
