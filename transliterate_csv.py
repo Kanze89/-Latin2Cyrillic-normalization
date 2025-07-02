@@ -81,7 +81,10 @@ def latin_to_cyrillic_pipeline(text):
     return transliterate_latin_to_cyrillic(text)
 
 def plot_bar(data, title, output_path):
-    top = data.most_common(20)
+    top = [(k, v) for k, v in data.most_common(20) if isinstance(k, str)]
+    if not top:
+        print(f"No valid strings to plot for {title}")
+        return
     labels, values = zip(*top)
     plt.figure(figsize=(10, 6))
     plt.barh(labels[::-1], values[::-1], color='skyblue')
