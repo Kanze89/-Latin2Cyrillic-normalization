@@ -1,42 +1,44 @@
 import pandas as pd
 from transformers import pipeline
 
-# === Load your Cyrillic dataset ===
-df = pd.read_csv("D:/sentiment/output_cyrillic.csv")
-assert "cyrillic" in df.columns, "Make sure your file has a 'cyrillic' column"
+# === Load input CSV ===
+input_path = "D:/sentiment/output_cyrillic.csv"
+df = pd.read_csv(input_path)
+assert "cyrillic" in df.columns, "❌ Missing 'cyrillic' column in your CSV"
 
-# === Load pipelines ===
-mn2en = pipeline("translation", model="Helsinki-NLP/opus-mt-mn-en")
-en2mn = pipeline("translation", model="Helsinki-NLP/opus-mt-en-mn")
-sentiment = pipeline("sentiment-analysis")  # default English BERT model
+# === Load transformers pipelines ===
+translate_mn2en = pipeline("translation", model="Helsinki-NLP/opus-mt-mn-en")
+sentiment_en = pipeline("sentiment-analysis")  # uses default English BERT
 
-# === Define processing function ===
-def analyze_sentiment_mn(text):
+# === Processing function ===
+def analyze_sentiment(text):
     if pd.isna(text) or str(text).strip() == "":
-        return {"en": "", "sentiment": "", "mn_label": ""}
-    
+        return {"en": "", "sentiment": "", "score": 0.0}
+
     # Translate to English
-    translated = mn2en(text)[0]['translation_text']
+    try:
+        en = translate_mn2en(text)[0]["translation_text"]
+    except:
+        en = ""
 
-    # Sentiment in English
-    result = sentiment(translated)[0]
-    label = result['label']  # e.g., POSITIVE or NEGATIVE
+    # Sentiment analysis
+    try:
+        result = sentiment_en(en)[0]
+        label = result["label"]     # e.g. POSITIVE / NEGATIVE
+        score = round(result["score"], 4)
+    except:
+        label, score = "", 0.0
 
-    # Translate label back to Mongolian
-    mn_label = en2mn(label)[0]['translation_text']
-
-    return {
-        "en": translated,
-        "sentiment": label,
-        "mn_label": mn_label
-    }
+    return {"en": en, "sentiment": label, "score": score}
 
 # === Apply to all rows ===
-results = df["cyrillic"].apply(analyze_sentiment_mn)
+results = df["cyrillic"].apply(analyze_sentiment)
 df["translated_en"] = results.apply(lambda x: x["en"])
-df["sentiment_en"] = results.apply(lambda x: x["sentiment"])
-df["sentiment_mn"] = results.apply(lambda x: x["mn_label"])
+df["sentiment_label"] = results.apply(lambda x: x["sentiment"])
+df["sentiment_score"] = results.apply(lambda x: x["score"])
 
-# === Save output ===
-df.to_csv("D:/sentiment/output_translated_sentiment.csv", index=False, encoding="utf-8-sig")
-print("✅ Sentiment analysis complete. File saved.")
+# === Save to new CSV ===
+output_path = "D:/sentiment/output_translated_sentiment.csv"
+df.to_csv(output_path, index=False, encoding="utf-8-sig")
+
+print(f"✅ Done. Saved to: {output_path}")
