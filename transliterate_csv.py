@@ -2,13 +2,17 @@ from rules import latin_exclusions, normalization_dict, latin_to_cyrillic, digra
 import pandas as pd
 import re
 import sys
+from collections import Counter, defaultdict
 
-# Fix Windows terminal encoding
 sys.stdout.reconfigure(encoding='utf-8')
 
 # ✅ Detect if word is already in Cyrillic
 def is_cyrillic(text):
     return all('а' <= char <= 'я' or char == 'ё' for char in text.lower())
+
+# 🔁 Track rule usage
+rule_usage = defaultdict(int)
+digraph_usage = defaultdict(int)
 
 # Step 1: Normalize informal patterns
 def normalize_text(text):
@@ -26,6 +30,7 @@ def normalize_text(text):
                 if base in normalization_dict:
                     norm = normalization_dict[base]
                     for w in norm.split():
+                        rule_usage[f"{base} → {normalization_dict[base]}"] += 1
                         normalized_words.append(normalization_dict.get(w, w))
                     for w in norm.split():
                         normalized_words.append(normalization_dict.get(w, w))
@@ -33,6 +38,8 @@ def normalize_text(text):
                     normalized_words.append(word)
             else:
                 norm = normalization_dict.get(lower, word)
+                if norm != word:
+                    rule_usage[f"{lower} → {norm}"] += 1
                 for w in norm.split():
                     normalized_words.append(normalization_dict.get(w, w))
 
@@ -55,7 +62,10 @@ def transliterate_latin_to_cyrillic(text):
 
         for digraph in digraphs:
             if digraph in latin_to_cyrillic:
-                word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
+                count = len(re.findall(digraph, word, flags=re.IGNORECASE))
+                if count > 0:
+                    digraph_usage[f"{digraph} → {latin_to_cyrillic[digraph]}"] += count
+                    word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
 
         if re.match(r'^(er|ev|ey)', word.lower()):
             word = re.sub(r'^[eE]', 'е', word)
@@ -71,7 +81,7 @@ def transliterate_latin_to_cyrillic(text):
 
     return ' '.join(result)
 
-# Step 4: Full pipeline
+# Full pipeline
 def latin_to_cyrillic_pipeline(text):
     if pd.isna(text) or str(text).strip() == "":
         return ""
@@ -80,43 +90,41 @@ def latin_to_cyrillic_pipeline(text):
     text = normalize_text(text)
     return transliterate_latin_to_cyrillic(text)
 
-# Step 5: Apply to Excel
-def process_excel_to_csv(input_excel, output_csv, latin_column):
+# Main processor
+def process_and_analyze(input_excel, output_folder, latin_column):
     df = pd.read_excel(input_excel)
-
-    print("Column names in Excel:")
-    for col in df.columns:
-        print("-", col)
 
     if latin_column not in df.columns:
         raise ValueError(f"Column '{latin_column}' not found.")
 
-    df['cyrillic'] = df[latin_column].apply(latin_to_cyrillic_pipeline)
+    # Count top comments
+    comment_counts = Counter(df[latin_column].dropna().str.strip().str.lower())
 
-    # ✅ Accuracy check if 'expected' column is present
-    if 'expected' in df.columns:
-        df['correct'] = df['cyrillic'] == df['expected']
-        total = len(df)
-        correct = df['correct'].sum()
-        accuracy = round((correct / total) * 100, 2)
-        print(f"\n✅ Accuracy: {correct}/{total} = {accuracy}%")
+    df['normalized'] = df[latin_column].apply(normalize_text)
+    df['cyrillic'] = df['normalized'].apply(transliterate_latin_to_cyrillic)
 
-        # Export incorrect results for review
-        errors = df[df['correct'] == False]
-        if not errors.empty:
-            error_path = "D:/sentiment/errors.csv"
-            errors.to_csv(error_path, index=False, encoding='utf-8-sig')
-            print(f"❌ Errors saved to: {error_path}")
-    else:
-        print("\n⚠️ No 'expected' column found. Skipping accuracy check.")
+    # Save main output
+    df.to_csv(f"{output_folder}/output_cyrillic.csv", index=False, encoding='utf-8-sig')
 
-    df.to_csv(output_csv, index=False, encoding='utf-8-sig')
-    print("✅ Final output saved to:", output_csv)
+    # Save top comment frequency
+    top_comments_df = pd.DataFrame(comment_counts.items(), columns=['comment', 'count']).sort_values(by='count', ascending=False)
+    top_comments_df.to_csv(f"{output_folder}/top_comments.csv", index=False, encoding='utf-8-sig')
 
-# Step 6: Run
+    # Save rule usage
+    rule_data = [{"rule_type": "normalization", "rule": k, "times_used": v} for k, v in rule_usage.items()]
+    digraph_data = [{"rule_type": "digraph", "rule": k, "times_used": v} for k, v in digraph_usage.items()]
+    rule_report_df = pd.DataFrame(rule_data + digraph_data)
+    rule_report_df.to_csv(f"{output_folder}/rule_usage_report.csv", index=False, encoding='utf-8-sig')
+
+    print("✅ Saved:")
+    print("- output_cyrillic.csv")
+    print("- top_comments.csv")
+    print("- rule_usage_report.csv")
+
+# === RUN ===
 if __name__ == "__main__":
     input_excel = "D:/sentiment/Facebook Comments 1.xlsx"
-    output_csv = "D:/sentiment/output_cyrillic.csv"
-    latin_column = "text"  # Your actual column name
+    output_folder = "D:/sentiment"
+    latin_column = "text"
 
-    process_excel_to_csv(input_excel, output_csv, latin_column)
+    process_and_analyze(input_excel, output_folder, latin_column)
