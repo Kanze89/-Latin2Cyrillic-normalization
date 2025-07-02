@@ -58,7 +58,7 @@ def transliterate_latin_to_cyrillic(text):
                 word = re.sub(digraph, latin_to_cyrillic[digraph], word, flags=re.IGNORECASE)
 
         if re.match(r'^(er|ev|ey)', word.lower()):
-            word = re.sub(r'^[eE]', 'e', word)
+            word = re.sub(r'^[eE]', 'е', word)
 
         converted = ''
         for char in word:
@@ -92,8 +92,26 @@ def process_excel_to_csv(input_excel, output_csv, latin_column):
         raise ValueError(f"Column '{latin_column}' not found.")
 
     df['cyrillic'] = df[latin_column].apply(latin_to_cyrillic_pipeline)
+
+    # ✅ Accuracy check if 'expected' column is present
+    if 'expected' in df.columns:
+        df['correct'] = df['cyrillic'] == df['expected']
+        total = len(df)
+        correct = df['correct'].sum()
+        accuracy = round((correct / total) * 100, 2)
+        print(f"\n✅ Accuracy: {correct}/{total} = {accuracy}%")
+
+        # Export incorrect results for review
+        errors = df[df['correct'] == False]
+        if not errors.empty:
+            error_path = "D:/sentiment/errors.csv"
+            errors.to_csv(error_path, index=False, encoding='utf-8-sig')
+            print(f"❌ Errors saved to: {error_path}")
+    else:
+        print("\n⚠️ No 'expected' column found. Skipping accuracy check.")
+
     df.to_csv(output_csv, index=False, encoding='utf-8-sig')
-    print("Saved to:", output_csv)
+    print("✅ Final output saved to:", output_csv)
 
 # Step 6: Run
 if __name__ == "__main__":
