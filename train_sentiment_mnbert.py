@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 from datasets import Dataset
 from transformers import (
     BertTokenizer, BertForSequenceClassification,
@@ -7,43 +8,42 @@ from transformers import (
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import numpy as np
 
+# Fix terminal encoding (for printing Cyrillic column names)
+sys.stdout.reconfigure(encoding='utf-8')
+
 # === CONFIG ===
 model_name = "bert-base-mongolian-cased"
-csv_path = "D:/sentiment/output_cyrillic.csv"  # CSV with 'cyrillic' and 'sentiment' columns
+csv_path = "D:/sentiment/labeled_data.csv"  # Make sure it contains 'text' and 'sentiment' columns
 output_dir = "./mnbert-sentiment"
 
-# === 1. Load and Encode Dataset ===
+# === 1. Load CSV and Inspect Columns ===
 df = pd.read_csv(csv_path)
+print("Column names:", df.columns.tolist())
 
-# Map sentiment labels to integers
+# === 2. Label Encoding ===
 label_map = {"positive": 0, "negative": 1, "neutral": 2}
 df["label"] = df["sentiment"].map(label_map)
 
-# Use 'cyrillic' column as input text
-df = df[["cyrillic", "label"]].dropna()
-df = df.rename(columns={"cyrillic": "text"})
+# Use the 'text' column (already in Cyrillic if prepared)
+df = df[["text", "label"]].dropna()
 
-# Convert to HuggingFace dataset
+# Convert to HuggingFace Dataset
 dataset = Dataset.from_pandas(df)
-
-# Split train/test
 dataset = dataset.train_test_split(test_size=0.2, seed=42)
 train_data = dataset["train"]
 eval_data = dataset["test"]
 
-# === 2. Load Tokenizer and Model ===
+# === 3. Load Tokenizer and Model ===
 tokenizer = BertTokenizer.from_pretrained(model_name)
 model = BertForSequenceClassification.from_pretrained(model_name, num_labels=3)
 
-# Tokenization function
 def tokenize(batch):
     return tokenizer(batch["text"], truncation=True, padding=True)
 
-# Apply tokenization
 train_data = train_data.map(tokenize, batched=True)
 eval_data = eval_data.map(tokenize, batched=True)
 
-# === 3. Define Evaluation Metrics ===
+# === 4. Metrics Function ===
 def compute_metrics(pred):
     labels = pred.label_ids
     preds = np.argmax(pred.predictions, axis=1)
@@ -56,7 +56,7 @@ def compute_metrics(pred):
         "f1": f1,
     }
 
-# === 4. Training Configuration ===
+# === 5. Training Configuration ===
 training_args = TrainingArguments(
     output_dir=output_dir,
     evaluation_strategy="epoch",
@@ -73,7 +73,7 @@ training_args = TrainingArguments(
     save_total_limit=2
 )
 
-# === 5. Trainer Setup ===
+# === 6. Trainer Setup ===
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -84,8 +84,8 @@ trainer = Trainer(
     compute_metrics=compute_metrics,
 )
 
-# === 6. Train the Model ===
+# === 7. Train ===
 trainer.train()
 
-# === 7. Save the Final Model ===
+# === 8. Save Final Model ===
 trainer.save_model(f"{output_dir}/final")
